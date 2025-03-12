@@ -133,3 +133,139 @@ class Bloco extends Entidade {
         }
     }
 }
+
+
+const raquete = new Raquete(canvas.width / 2 - 50, canvas.height - 30, 100, 10);
+const bola = new Bola(canvas.width / 2, canvas.height / 2, 10, 2, -2); 
+const blocos = [];
+
+
+for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 7; col++) {
+        blocos.push(
+            new Bloco(
+                col * (80 + 10) + 30,
+                row * (20 + 10) + 30,
+                80,
+                20,
+                '#0095DD'
+            )
+        );
+    }
+}
+
+
+function desenharPontuacao() {
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Pontuação: ${pontuacao}`, 20, 30);
+}
+
+function desenharVidas() {
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Vidas: ${vidas}`, canvas.width - 120, 30);
+}
+
+function verificarVitoria() {
+    if (blocos.every(bloco => !bloco.visivel)) {
+        gameOver = true;
+        ctx.fillStyle = 'green';
+        ctx.fillRect((canvas.width / 2) - 200, (canvas.height / 2) - 50, 400, 100);
+        ctx.fillStyle = 'black';
+        ctx.font = '50px Arial';
+        ctx.fillText("VITÓRIA!", (canvas.width / 2) - 120, (canvas.height / 2) + 20);
+    }
+}
+
+
+function reiniciarJogo() {
+    gameOver = false;
+    pontuacao = 0;
+    vidas = 3;
+
+    
+    bola.posx = canvas.width / 2;
+    bola.posy = canvas.height / 2;
+    bola.velocidadex = 4; 
+    bola.velocidadey = -4; 
+
+    raquete.posx = canvas.width / 2 - 50;
+    raquete.posy = canvas.height - 30;
+
+    
+    blocos.forEach(bloco => {
+        bloco.visivel = true;
+    });
+
+    
+    loop();
+}
+
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowRight') teclasPressionadas.ArrowRight = true;
+    if (e.code === 'ArrowLeft') teclasPressionadas.ArrowLeft = true;
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowRight') teclasPressionadas.ArrowRight = false;
+    if (e.code === 'ArrowLeft') teclasPressionadas.ArrowLeft = false;
+});
+
+
+document.addEventListener('keydown', (e) => {
+    if (gameOver && e.key === 'r') {
+        reiniciarJogo();
+    }
+});
+
+
+function atualizarMovimentacao() {
+    if (teclasPressionadas.ArrowRight && !teclasPressionadas.ArrowLeft) {
+        raquete.velocidadex = 5;
+    } else if (teclasPressionadas.ArrowLeft && !teclasPressionadas.ArrowRight) {
+        raquete.velocidadex = -5;
+    } else {
+        raquete.velocidadex = 0;
+    }
+}
+
+
+function loop() {
+    if (gameOver) {
+        ctx.fillStyle = 'red';
+        ctx.fillRect((canvas.width / 2) - 200, (canvas.height / 2) - 50, 400, 100);
+        ctx.fillStyle = 'black';
+        ctx.font = '50px Arial';
+        ctx.fillText("GAME OVER", (canvas.width / 2) - 150, (canvas.height / 2) + 10);
+        ctx.fillText("Pressione R para reiniciar", (canvas.width / 2) - 250, (canvas.height / 2) + 60);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    atualizarMovimentacao();
+
+    raquete.atualizar();
+    bola.atualizar();
+
+    raquete.desenhar();
+    bola.desenhar();
+
+    blocos.forEach(bloco => {
+        if (bloco.visivel) {
+            bloco.desenhar();
+            bloco.colidir(bola);
+        }
+    });
+
+    desenharPontuacao();
+    desenharVidas();
+    verificarVitoria();
+
+    requestAnimationFrame(loop);
+}
+
+
+loop();
