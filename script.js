@@ -1,13 +1,18 @@
+
+// Configurações iniciais
 const canvas = document.getElementById('JogoCanvas');
 const ctx = canvas.getContext('2d');
 let gameOver = false;
 let pontuacao = 0;
 let vidas = 3;
+let multiplayerAtivo = false;
 
 // Objeto para rastrear teclas pressionadas
 const teclasPressionadas = {
     ArrowRight: false,
     ArrowLeft: false,
+    KeyD: false,
+    KeyA: false
 };
 
 // Classe base para todas as entidades do jogo
@@ -79,30 +84,44 @@ class Bola extends Entidade {
             this.velocidadex = -this.velocidadex;
         }
 
-        // Colisão com o topo
-        if (this.posy < 0) {
+
+        // Colisão com o topo e a base
+        if (this.posy < 0 || this.posy + this.raio * 2 > canvas.height) {
             this.velocidadey = -this.velocidadey;
         }
 
-        // Colisão com a raquete
+        // Colisão com a raquete do jogador 1 (inferior)
         if (
-            this.posy + this.raio * 2 > raquete.posy &&
-            this.posx + this.raio * 2 > raquete.posx &&
-            this.posx < raquete.posx + raquete.largura
+            this.posy + this.raio * 2 > raqueteJogador1.posy &&
+            this.posx + this.raio * 2 > raqueteJogador1.posx &&
+            this.posx < raqueteJogador1.posx + raqueteJogador1.largura
+        ) {
+            this.velocidadey = -this.velocidadey;
+        }
+
+        // Colisão com a raquete do jogador 2 (inferior, ao lado da primeira)
+        if (
+            multiplayerAtivo &&
+            this.posy + this.raio * 2 > raqueteJogador2.posy &&
+            this.posx + this.raio * 2 > raqueteJogador2.posx &&
+            this.posx < raqueteJogador2.posx + raqueteJogador2.largura
         ) {
             this.velocidadey = -this.velocidadey;
         }
 
         // Verifica se a bola caiu
-        if (this.posy + this.raio * 2 > canvas.height) {
+
+        if (this.posy + this.raio * 2 > canvas.height || this.posy < 0) {
+
             vidas -= 1;
             if (vidas === 0) {
                 gameOver = true;
             } else {
-                // Reinicia a posição da bola e da raquete
+
+                // Reinicia a posição da bola
+
                 this.posx = canvas.width / 2;
                 this.posy = canvas.height / 2;
-                raquete.posx = canvas.width / 2 - 50;
             }
         }
     }
@@ -144,6 +163,7 @@ class PowerUp extends Entidade {
         this.cor = this.definirCor();
     }
 
+
     gerarTipo() {
         const tipos = ['raqueteGrande', 'vidaExtra', 'bolaLenta'];
         return tipos[Math.floor(Math.random() * tipos.length)];
@@ -165,9 +185,9 @@ class PowerUp extends Entidade {
     aplicarEfeito() {
         switch (this.tipo) {
             case 'raqueteGrande':
-                raquete.largura *= 1.5; // Aumenta o tamanho da raquete
+                raqueteJogador1.largura *= 1.5; // Aumenta o tamanho da raquete
                 setTimeout(() => {
-                    raquete.largura /= 1.5; // Volta ao tamanho original após 10 segundos
+                    raqueteJogador1.largura /= 1.5; // Volta ao tamanho original após 10 segundos
                 }, 10000);
                 break;
             case 'vidaExtra':
@@ -186,11 +206,11 @@ class PowerUp extends Entidade {
 }
 
 // Inicialização do jogo
-const raquete = new Raquete(canvas.width / 2 - 50, canvas.height - 30, 100, 10);
+const raqueteJogador1 = new Raquete(canvas.width / 2 - 50, canvas.height - 30, 100, 10);
+const raqueteJogador2 = new Raquete(canvas.width / 2 + 100, canvas.height - 30, 100, 10); // Posicionada ao lado da primeira
 const bola = new Bola(canvas.width / 2, canvas.height / 2, 10, 4, -4);
 const blocos = [];
 const powerUps = [];
-
 // Cria os blocos
 for (let row = 0; row < 5; row++) {
     for (let col = 0; col < 7; col++) {
@@ -236,14 +256,21 @@ function reiniciarJogo() {
     pontuacao = 0;
     vidas = 3;
 
-    // Reseta a posição da bola e da raquete
+
+    // Reseta a posição da bola e das raquetes
+
     bola.posx = canvas.width / 2;
     bola.posy = canvas.height / 2;
     bola.velocidadex = 4;
     bola.velocidadey = -4;
 
-    raquete.posx = canvas.width / 2 - 50;
-    raquete.posy = canvas.height - 30;
+
+    raqueteJogador1.posx = canvas.width / 2 - 50;
+    raqueteJogador1.posy = canvas.height - 30;
+
+
+    raqueteJogador2.posx = canvas.width / 2 + 100; // Posicionada ao lado da primeira
+    raqueteJogador2.posy = canvas.height - 30;
 
     // Reseta os blocos
     blocos.forEach(bloco => {
@@ -261,11 +288,15 @@ function reiniciarJogo() {
 document.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowRight') teclasPressionadas.ArrowRight = true;
     if (e.code === 'ArrowLeft') teclasPressionadas.ArrowLeft = true;
+    if (e.code === 'KeyD') teclasPressionadas.KeyD = true;
+    if (e.code === 'KeyA') teclasPressionadas.KeyA = true;
 });
 
 document.addEventListener('keyup', (e) => {
     if (e.code === 'ArrowRight') teclasPressionadas.ArrowRight = false;
     if (e.code === 'ArrowLeft') teclasPressionadas.ArrowLeft = false;
+    if (e.code === 'KeyD') teclasPressionadas.KeyD = false;
+    if (e.code === 'KeyA') teclasPressionadas.KeyA = false;
 });
 
 // Evento para reiniciar o jogo com a tecla "R"
@@ -275,14 +306,29 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Atualiza a movimentação da raquete
+
+// Atualiza a movimentação das raquetes
+
 function atualizarMovimentacao() {
+    // Movimentação da raquete do jogador 1 (setas)
     if (teclasPressionadas.ArrowRight && !teclasPressionadas.ArrowLeft) {
-        raquete.velocidadex = 5;
+        raqueteJogador1.velocidadex = 5;
     } else if (teclasPressionadas.ArrowLeft && !teclasPressionadas.ArrowRight) {
-        raquete.velocidadex = -5;
+        raqueteJogador1.velocidadex = -5;
     } else {
-        raquete.velocidadex = 0;
+        raqueteJogador1.velocidadex = 0;
+    }
+
+
+    // Movimentação da raquete do jogador 2 (A e D)
+    if (multiplayerAtivo) {
+        if (teclasPressionadas.KeyD && !teclasPressionadas.KeyA) {
+            raqueteJogador2.velocidadex = 5;
+        } else if (teclasPressionadas.KeyA && !teclasPressionadas.KeyD) {
+            raqueteJogador2.velocidadex = -5;
+        } else {
+            raqueteJogador2.velocidadex = 0;
+        }
     }
 }
 
@@ -302,10 +348,15 @@ function loop() {
 
     atualizarMovimentacao();
 
-    raquete.atualizar();
-    bola.atualizar();
+    raqueteJogador1.atualizar();
+    raqueteJogador1.desenhar();
 
-    raquete.desenhar();
+    if (multiplayerAtivo) {
+        raqueteJogador2.atualizar();
+        raqueteJogador2.desenhar();
+    }
+
+    bola.atualizar();
     bola.desenhar();
 
     blocos.forEach(bloco => {
@@ -320,8 +371,10 @@ function loop() {
         powerUp.atualizar();
         powerUp.desenhar();
 
-        // Verifica colisão com a raquete
-        if (raquete.verificarColisao(powerUp)) {
+
+        // Verifica colisão com a raquete do jogador 1
+        if (raqueteJogador1.verificarColisao(powerUp)) {
+
             powerUp.aplicarEfeito();
             powerUps.splice(index, 1); // Remove o Power-Up após a colisão
         }
@@ -338,6 +391,11 @@ function loop() {
 
     requestAnimationFrame(loop);
 }
+
+// Evento para ativar o multiplayer
+document.getElementById('multiplayerBtn').addEventListener('click', () => {
+    multiplayerAtivo = true;
+});
 
 // Inicia o jogo
 loop();
